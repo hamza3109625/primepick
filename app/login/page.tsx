@@ -22,9 +22,9 @@ export default function LoginPage() {
             <span className="text-xs font-semibold text-[#007CFC]">Secure Access</span>
           </div>
           
-          <p className="text-background font-bold text-4xl mt-2">Prime - SFTP</p>
+          <p className="text-foreground font-bold text-4xl mt-2">Prime - SFTP</p>
 
-          <p className="text-background text-sm mt-2">Sign In to Manage SFTP Server and Client configuration securely</p>
+          <p className="text-foreground text-sm mt-2">Sign In to Manage SFTP Server and Client configuration securely</p>
           
           <div className="mt-12 w-full">
             <LoginForm />
