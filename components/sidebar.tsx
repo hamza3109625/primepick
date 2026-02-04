@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
@@ -8,8 +8,6 @@ import {
   Mail,
   FolderOpen,
   UserPlus,
-  UserCheck,
-  UserX,
   Send,
   Inbox,
   Archive,
@@ -17,6 +15,7 @@ import {
   Upload,
   Download,
   LayoutDashboard,
+  Building,
 } from "lucide-react";
 import { cn } from "lib/utils";
 import {
@@ -51,6 +50,14 @@ const sidebarItems: SidebarItem[] = [
     ],
   },
   {
+    title: "Company",
+    icon: Building,
+    subItems: [
+      { title: "Company Products", icon: Users, href: "/company/companyproducts" },
+      { title: "Company Users", icon: UserPlus, href: "/company/company_users" },
+    ],
+  },
+  {
     title: "Email Management",
     icon: Mail,
     subItems: [
@@ -74,7 +81,19 @@ const sidebarItems: SidebarItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
   const [openItems, setOpenItems] = useState<string[]>(["Users"]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+if (!mounted) {
+  return (
+    <aside className="w-64 h-screen bg-[#0E325D] border-r border-[#0E325D]/80" />
+  );
+}
+
 
   const toggleItem = (title: string) => {
     setOpenItems((prev) =>
@@ -86,19 +105,15 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 h-screen bg-[#0E325D] text-white flex flex-col border-r border-[#0E325D]/80">
+      {/* Logo */}
       <div className="p-5 border-b border-white/10 flex items-center justify-center">
-        <img
-          src="/logo-dark.png"
-          alt="Logo"
-          width="128"
-          height="128"
-        />
+        <img src="/logo-dark.png" alt="Logo" width="128" height="128" />
       </div>
 
-      {/* Nav */}
+      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4">
         <div className="space-y-2">
-          {sidebarItems.map((item) => (
+          {sidebarItems.map((item) =>
             item.subItems ? (
               <Collapsible
                 key={item.title}
@@ -161,12 +176,12 @@ export function Sidebar() {
                 <item.icon className="h-5 w-5" />
                 <span>{item.title}</span>
               </a>
-            )
-          ))}
+            ),
+          )}
         </div>
       </nav>
 
-      {/* User */}
+      {/* User Footer */}
       <div className="p-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-3 py-2">
           <div className="h-8 w-8 rounded-full bg-[#007CFC] flex items-center justify-center">
