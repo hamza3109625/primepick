@@ -26,8 +26,8 @@ function getInitials(name: string) {
 type SortKey = "username" | "email" | "address" | "active";
 
 export default function UsersTable() {
-  const [currentPage, setCurrentPage] = useState(0); // API uses 0-based pagination
-  const [rowsPerPage] = useState(8);
+  const [currentPage, setCurrentPage] = useState(0); 
+  const [rowsPerPage] = useState(10);
   const [sortKey, setSortKey] = useState<SortKey>("username");
   const [sortAsc, setSortAsc] = useState(true);
 

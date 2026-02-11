@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProducts, getProduct, GetProductsParams } from "@/api/product.api";
+import { 
+  getProducts, 
+  getProduct, 
+  createProduct, 
+  GetProductsParams, 
+  CreateProductPayload 
+} from "@/api/product.api";
 
 export const productKeys = {
   all: ["products"] as const,
@@ -29,5 +35,18 @@ export const useProduct = (id: number, enabled: boolean = true) => {
       return response.data;
     },
     enabled,
+  });
+};
+
+// Create new product
+export const useCreateProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createProduct,
+    onSuccess: () => {
+      // Invalidate and refetch products list
+      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+    },
   });
 };

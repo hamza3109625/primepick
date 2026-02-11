@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useProducts } from "@/hooks/useProducts";
 import { format } from "date-fns";
+import { AddProductDialog } from "./components/add-product-dialog";
 
 type SortKey = "name" | "shortCode" | "longCode" | "status" | "createDate";
 
@@ -80,8 +81,7 @@ export default function ProductsTable() {
             </p>
           </div>
 
-          {/* Add Product Dialog can go here */}
-          {/* <AddProductDialog /> */}
+          <AddProductDialog />
         </div>
 
         {/* Table */}
