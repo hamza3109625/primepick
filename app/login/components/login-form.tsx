@@ -5,14 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
-
-// API Configuration
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
+import { useLogin } from "@/hooks/useLogin";
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [loginMessage, setLoginMessage] = useState<{
     text: string;
     type: "error" | "success" | "";
@@ -24,6 +20,8 @@ export function LoginForm() {
     username: "",
     password: "",
   });
+
+  const loginMutation = useLogin();
 
   // Activation message
   useEffect(() => {
@@ -52,80 +50,47 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("", "");
-    setIsLoading(true);
 
     const { username, password } = formData;
 
     if (!username.trim() || !password) {
       setMessage("Please fill in username and password.", "error");
-      setIsLoading(false);
       return;
     }
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: username.trim(),
-          password,
-          role: "STANDARD_USER", // fixed role
-        }),
-      });
+    loginMutation.mutate(
+      {
+        username: username.trim(),
+        password,
+        role: "ADMIN",
+      },
+      {
+        onSuccess: () => {
+          setMessage("Login successful. Redirecting…", "success");
+        },
+        onError: (error: any) => {
+          let errorMsg = "Login failed.";
 
-      if (!res.ok) {
-        let errorMsg = "Login failed.";
+          if (error.response) {
+            const { status, data } = error.response;
 
-        try {
-          const contentType = res.headers.get("Content-Type") || "";
-          if (contentType.includes("application/json")) {
-            const err = await res.json();
-            if (err.code === "INVALID_CREDENTIALS") {
+            if (data?.code === "INVALID_CREDENTIALS") {
               errorMsg = "Invalid username or password.";
-            } else if (err.message) {
-              errorMsg = err.message;
+            } else if (data?.message) {
+              errorMsg = data.message;
+            } else if (status >= 500) {
+              errorMsg = "Server error. Please try again later.";
             }
+          } else if (error.request) {
+            errorMsg = "Network error. Please check your connection.";
           } else {
-            const txt = await res.text();
-            if (txt) errorMsg = txt;
+            errorMsg = "Unexpected error during login.";
           }
-        } catch {}
 
-        if (res.status >= 500) {
-          errorMsg = "Server error. Please try again later.";
-        }
-
-        setMessage(errorMsg, "error");
-        setIsLoading(false);
-        return;
-      }
-
-      const data = await res.json();
-
-      const rolesStr = Array.isArray(data.roles)
-        ? data.roles.join(",")
-        : data.roles || data.role || "";
-
-      localStorage.setItem("token", data.token || "");
-      localStorage.setItem("userid", data.userId ?? data.id ?? "");
-      localStorage.setItem("username", data.username ?? username);
-      localStorage.setItem("roles", rolesStr);
-      localStorage.setItem("mobile", (data.mobile ?? "").trim());
-
-      setMessage("Login successful. Redirecting…", "success");
-
-      if (typeof (window as any).refreshTopnav === "function") {
-        (window as any).refreshTopnav();
-      }
-
-      setTimeout(() => {
-        window.location.href = "/mobile-validation";
-      }, 650);
-    } catch (err) {
-      console.error(err);
-      setMessage("Unexpected error during login.", "error");
-      setIsLoading(false);
-    }
+          setMessage(errorMsg, "error");
+        },
+      },
+    );
   };
 
   return (
@@ -189,11 +154,10 @@ export function LoginForm() {
                 placeholder="you@example.com"
                 className="h-11 pl-10 bg-[#EEFBFF] border border-transparent focus:border-[#007CFC] focus:ring-2 focus:ring-[#007CFC]/30"
                 required
+                disabled={loginMutation.isPending}
               />
             </div>
           </div>
-
-        
 
           {/* Password */}
           <div className="space-y-1.5">
@@ -208,11 +172,13 @@ export function LoginForm() {
                 placeholder="••••••••"
                 className="h-11 pl-10 pr-10 bg-[#EEFBFF] border border-transparent focus:border-[#007CFC] focus:ring-2 focus:ring-[#007CFC]/30"
                 required
+                disabled={loginMutation.isPending}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0E325D]/40"
+                disabled={loginMutation.isPending}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -223,12 +189,12 @@ export function LoginForm() {
             </div>
           </div>
 
-            {/* ROLE – DISPLAY ONLY */}
+          {/* ROLE – DISPLAY ONLY */}
           <div className="space-y-1.5">
             <Label className="text-sm text-[#0E325D]/80">Role</Label>
             <div className="relative h-11 flex items-center rounded-md bg-[#EEFBFF] border border-transparent px-3 pl-10 text-sm text-[#0E325D]">
               <Lock className="absolute left-3 h-4 w-4 text-[#0E325D]/40" />
-              Admin
+              Standard User
             </div>
           </div>
 
@@ -246,10 +212,10 @@ export function LoginForm() {
 
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={loginMutation.isPending}
             className="h-11 w-full bg-[#007CFC] text-white"
           >
-            {isLoading ? "Signing in..." : "Sign in"}
+            {loginMutation.isPending ? "Signing in..." : "Sign in"}
           </Button>
         </form>
       </div>

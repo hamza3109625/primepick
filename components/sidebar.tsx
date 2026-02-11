@@ -53,8 +53,15 @@ const sidebarItems: SidebarItem[] = [
     title: "Company",
     icon: Building,
     subItems: [
-      { title: "Company Products", icon: Users, href: "/company/companyproducts" },
-      { title: "Company Users", icon: UserPlus, href: "/company/company_users" },
+      { title: "List of Companies", icon: LayoutDashboard, href: "/company" },
+    ],
+  },
+  {
+    title: "Products",
+    icon: FileText,
+    subItems: [
+      { title: "All Products", icon: FileText, href: "/products" },
+      { title: "Add Product", icon: Upload, href: "/products/create-product" },
     ],
   },
   {

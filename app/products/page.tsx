@@ -13,40 +13,34 @@ import {
 import { DashboardLayout } from "@/components/dashboard-layout";
 import {
   ChevronsUpDown,
-  Building2,
+  Package,
   Eye,
   Edit,
   Trash2,
   Loader2,
 } from "lucide-react";
-import { useCompanies } from "@/hooks/useCompanies";
-import { AddCompanyDialog } from "./components/add-company-dialog";
+import { useProducts } from "@/hooks/useProducts";
+import { format } from "date-fns";
 
-type SortKey = "name" | "city" | "email" | "status" | "country";
+type SortKey = "name" | "shortCode" | "longCode" | "status" | "createDate";
 
-export default function CompaniesTable() {
+export default function ProductsTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage] = useState(8);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
 
-  // Fetch companies from API
-  const { data: companies = [], isLoading, error } = useCompanies();
-
-  // Sorting
-  const sortedCompanies = [...companies].sort((a, b) => {
-    const valA = String(a[sortKey]).toLowerCase();
-    const valB = String(b[sortKey]).toLowerCase();
-    if (valA < valB) return sortAsc ? -1 : 1;
-    if (valA > valB) return sortAsc ? 1 : -1;
-    return 0;
+  // Fetch products from API with pagination
+  const { data, isLoading, error } = useProducts({
+    page: currentPage - 1,
+    size: rowsPerPage,
+    sortBy: sortKey,
+    direction: sortAsc ? "asc" : "desc",
   });
 
-  // Pagination
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedCompanies = sortedCompanies.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(sortedCompanies.length / rowsPerPage);
+  const products = data?.content || [];
+  const totalPages = data?.totalPages || 0;
+  const totalElements = data?.totalElements || 0;
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -58,10 +52,21 @@ export default function CompaniesTable() {
   };
 
   const getStatusBadgeStyle = (status: string) => {
-    return status === "CREATED"
+    return status === "ACTIVE"
       ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
       : "bg-red-500/10 text-red-600 hover:bg-red-500/20";
   };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "MMM dd, yyyy");
+    } catch {
+      return dateString;
+    }
+  };
+
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = Math.min(startIndex + rowsPerPage, totalElements);
 
   return (
     <DashboardLayout>
@@ -69,13 +74,14 @@ export default function CompaniesTable() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Companies</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Products</h1>
             <p className="text-muted-foreground">
-              Manage and view all companies
+              Manage and view all products
             </p>
           </div>
 
-          <AddCompanyDialog />
+          {/* Add Product Dialog can go here */}
+          {/* <AddProductDialog /> */}
         </div>
 
         {/* Table */}
@@ -83,16 +89,16 @@ export default function CompaniesTable() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Loader2 className="h-12 w-12 text-muted-foreground mb-4 animate-spin" />
-              <h3 className="text-lg font-semibold mb-2">Loading Companies</h3>
+              <h3 className="text-lg font-semibold mb-2">Loading Products</h3>
               <p className="text-sm text-muted-foreground">
                 Please wait while we fetch the data
               </p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Building2 className="h-12 w-12 text-red-500 mb-4" />
+              <Package className="h-12 w-12 text-red-500 mb-4" />
               <h3 className="text-lg font-semibold mb-2">
-                Error Loading Companies
+                Error Loading Products
               </h3>
               <p className="text-sm text-muted-foreground">
                 {error instanceof Error
@@ -100,12 +106,12 @@ export default function CompaniesTable() {
                   : "Something went wrong"}
               </p>
             </div>
-          ) : companies.length === 0 ? (
+          ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Companies Found</h3>
+              <Package className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Products Found</h3>
               <p className="text-sm text-muted-foreground">
-                No companies have been added yet
+                No products have been added yet
               </p>
             </div>
           ) : (
@@ -114,10 +120,10 @@ export default function CompaniesTable() {
                 <TableHeader>
                   <TableRow>
                     {[
-                      { label: "Company Name", key: "name" },
-                      { label: "Email", key: "email" },
-                      { label: "City", key: "city" },
-                      { label: "Country", key: "country" },
+                      { label: "Product Name", key: "name" },
+                      { label: "Short Code", key: "shortCode" },
+                      { label: "Long Code", key: "longCode" },
+                      { label: "Created Date", key: "createDate" },
                       { label: "Status", key: "status" },
                       { label: "Actions", key: "" },
                     ].map((col) => (
@@ -137,33 +143,40 @@ export default function CompaniesTable() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedCompanies.map((company) => (
-                    <TableRow key={company.id}>
+                  {products.map((product) => (
+                    <TableRow key={product.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Building2 size={16} className="text-primary" />
+                            <Package size={16} className="text-primary" />
                           </div>
-                          <span className="font-medium text-foreground">
-                            {company.name}
-                          </span>
+                          <div>
+                            <span className="font-medium text-foreground block">
+                              {product.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {product.description}
+                            </span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {company.email}
+                        {product.shortCode}
                       </TableCell>
-                      <TableCell>{company.city}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {company.country}
+                        {product.longCode}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(product.createDate)}
                       </TableCell>
                       <TableCell>
                         <Badge
                           variant={
-                            company.status === "CREATED" ? "default" : "outline"
+                            product.status === "ACTIVE" ? "default" : "outline"
                           }
-                          className={getStatusBadgeStyle(company.status)}
+                          className={getStatusBadgeStyle(product.status)}
                         >
-                          {company.status}
+                          {product.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="flex gap-2">
@@ -205,7 +218,7 @@ export default function CompaniesTable() {
                       >
                         {page}
                       </button>
-                    ),
+                    )
                   )}
                   <button
                     disabled={currentPage === totalPages}
@@ -221,10 +234,9 @@ export default function CompaniesTable() {
         </div>
 
         {/* Summary */}
-        {!isLoading && !error && companies.length > 0 && (
+        {!isLoading && !error && products.length > 0 && (
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1} to {Math.min(endIndex, companies.length)}{" "}
-            of {companies.length} companies
+            Showing {startIndex + 1} to {endIndex} of {totalElements} products
           </div>
         )}
       </div>
