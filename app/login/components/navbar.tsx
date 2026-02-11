@@ -7,7 +7,7 @@ export function Navbar() {
         <div>
             <img src="/Main.png" alt="Prime Pick Logo" className="h-8 w-auto" />
         </div>
-       <div
+       {/* <div
             className="
               inline-flex items-center gap-1
               rounded-full
@@ -19,7 +19,7 @@ export function Navbar() {
           >
             <Shield className="h-3 w-3 text-[#007CFC]" />
             <span className="text-xs font-semibold text-[#007CFC]">Secure SFTP Management</span>
-          </div>
+          </div> */}
         
       </nav>
     </header>

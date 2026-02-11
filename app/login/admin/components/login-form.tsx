@@ -17,7 +17,6 @@ import { useLogin } from "@/hooks/useLogin";
 const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin" },
   { value: "INTERNAL_USER", label: "Company User" },
-  { value: "EXTERNAL_USER", label: "Standard User" },
 ] as const;
 
 export function LoginForm() {
@@ -32,7 +31,7 @@ export function LoginForm() {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-    role: "EXTERNAL_USER",
+    role: "",
   });
 
   const loginMutation = useLogin();
@@ -148,22 +147,22 @@ export function LoginForm() {
         <div className="mb-6">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-semibold text-[#0E325D]">Login</h1>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#007CFC]/30 bg-[#EEFBFF] px-3 py-2">
+            {/* <div className="inline-flex items-center gap-2 rounded-full border border-[#007CFC]/30 bg-[#EEFBFF] px-3 py-2">
               <Lock className="h-3 w-3 text-[#007CFC]" />
               <span className="text-xs font-semibold text-[#007CFC]">
                 Green Secure
               </span>
-            </div>
+            </div> */}
           </div>
           <p className="mt-1 text-sm text-[#0E325D]/60">
             Use your credentials to continue
           </p>
         </div>
 
-
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* ROLE – DROPDOWN */}
+
+            {/* ROLE – DROPDOWN */}
           <div className="space-y-1.5">
             <Label className="text-sm text-[#0E325D]/80">Role</Label>
             <Select
@@ -171,7 +170,7 @@ export function LoginForm() {
               onValueChange={handleRoleChange}
               disabled={loginMutation.isPending}
             >
-              <SelectTrigger className="h-11 bg-[#EEFBFF] border border-transparent focus:border-[#007CFC] focus:ring-2 focus:ring-[#007CFC]/30">
+              <SelectTrigger className="w-full h-11 bg-[#EEFBFF] border border-transparent focus:border-[#007CFC] focus:ring-2 focus:ring-[#007CFC]/30">
                 <div className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-[#0E325D]/40" />
                   <SelectValue placeholder="Select role" />
@@ -186,7 +185,6 @@ export function LoginForm() {
               </SelectContent>
             </Select>
           </div>
-
           {/* Username */}
           <div className="space-y-1.5">
             <Label className="text-sm text-[#0E325D]/80">
@@ -236,6 +234,7 @@ export function LoginForm() {
             </div>
           </div>
 
+        
 
           {loginMessage.text && (
             <div
@@ -256,6 +255,44 @@ export function LoginForm() {
           >
             {loginMutation.isPending ? "Signing in..." : "Sign in"}
           </Button>
+
+          {/* Footer */}
+          <footer className="pt-6 border-t border-[#0E325D]/10">
+            <div className="text-center space-y-3">
+              <div className="text-xs text-[#0E325D]/60">
+                &copy; 2026{" "}
+                <a
+                  href="#"
+                  className="text-[#007CFC] hover:underline font-medium"
+                >
+                  Mazume Solutions Inc.
+                </a>
+                . All Rights Reserved.
+              </div>
+              <div className="flex items-center justify-center gap-4 text-xs">
+                <a
+                  href="#"
+                  className="text-[#007CFC] hover:underline font-medium"
+                >
+                  Privacy Policy
+                </a>
+                <span className="text-[#0E325D]/30">|</span>
+                <a
+                  href="#"
+                  className="text-[#007CFC] hover:underline font-medium"
+                >
+                  Terms of Service
+                </a>
+                <span className="text-[#0E325D]/30">|</span>
+                <a
+                  href="#"
+                  className="text-[#007CFC] hover:underline font-medium"
+                >
+                  Help
+                </a>
+              </div>
+            </div>
+          </footer>
         </form>
       </div>
     </div>
