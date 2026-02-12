@@ -28,10 +28,12 @@ interface SidebarItem {
   title: string;
   icon: React.ElementType;
   href?: string;
+  allowedRoles?: string[]; // Add role-based access
   subItems?: {
     title: string;
     icon: React.ElementType;
     href: string;
+    allowedRoles?: string[]; // Add role-based access for sub-items
   }[];
 }
 
@@ -40,48 +42,64 @@ const sidebarItems: SidebarItem[] = [
     title: "Dashboard",
     icon: LayoutDashboard,
     href: "/dashboard",
+    allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"], // All roles
   },
   {
     title: "Users",
     icon: Users,
+    allowedRoles: ["ADMIN", "INTERNAL_USER"], // Only ADMIN and INTERNAL_USER
     subItems: [
-      { title: "All Users", icon: Users, href: "/users" },
-      { title: "Add User", icon: UserPlus, href: "/users/create-user" },
+      { 
+        title: "All Users", 
+        icon: Users, 
+        href: "/users",
+        allowedRoles: ["ADMIN", "INTERNAL_USER"]
+      },
+      { 
+        title: "Add User", 
+        icon: UserPlus, 
+        href: "/users/create-user",
+        allowedRoles: ["ADMIN"] // Only ADMIN can add users
+      },
     ],
   },
   {
     title: "Company",
     icon: Building,
+    allowedRoles: ["ADMIN", "INTERNAL_USER"],
     subItems: [
-      { title: "List of Companies", icon: LayoutDashboard, href: "/company" },
+      { 
+        title: "List of Companies", 
+        icon: LayoutDashboard, 
+        href: "/company",
+        allowedRoles: ["ADMIN", "INTERNAL_USER"]
+      },
     ],
   },
   {
     title: "Products",
     icon: FileText,
+    allowedRoles: ["ADMIN", "INTERNAL_USER"], // All roles
     subItems: [
-      { title: "All Products", icon: FileText, href: "/products" },
-      { title: "Add Product", icon: Upload, href: "/products/create-product" },
-    ],
-  },
-  {
-    title: "Email Management",
-    icon: Mail,
-    subItems: [
-      { title: "Inbox", icon: Inbox, href: "#inbox" },
-      { title: "Sent", icon: Send, href: "#sent" },
-      { title: "Drafts", icon: FileText, href: "#drafts" },
-      { title: "Archive", icon: Archive, href: "#archive" },
+      { 
+        title: "All Products", 
+        icon: FileText, 
+        href: "/products",
+        allowedRoles: ["ADMIN", "INTERNAL_USER"]
+      }
     ],
   },
   {
     title: "File Management",
     icon: FolderOpen,
+    allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"],
     subItems: [
-      { title: "All Files", icon: FileText, href: "#all-files" },
-      { title: "Upload", icon: Upload, href: "#upload" },
-      { title: "Downloads", icon: Download, href: "#downloads" },
-      { title: "Archived", icon: Archive, href: "#archived" },
+      { 
+        title: "Upload", 
+        icon: Upload, 
+        href: "/file/upload",
+        allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"]
+      },
     ],
   },
 ];
@@ -90,17 +108,33 @@ export function Sidebar() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [openItems, setOpenItems] = useState<string[]>(["Users"]);
+  const [username, setUsername] = useState("Admin User");
+  const [email, setEmail] = useState("admin@example.com");
+  const [userRole, setUserRole] = useState<string>("EXTERNAL_USER");
 
   useEffect(() => {
     setMounted(true);
+
+    const storedUsername = localStorage.getItem("username");
+    const storedEmail = localStorage.getItem("email");
+    const storedRole = localStorage.getItem("roles") || "EXTERNAL_USER";
+
+    if (storedUsername) setUsername(storedUsername);
+    if (storedEmail) setEmail(storedEmail);
+    setUserRole(storedRole);
   }, []);
 
-if (!mounted) {
-  return (
-    <aside className="w-64 h-screen bg-[#0E325D] border-r border-[#0E325D]/80" />
-  );
-}
+  // Helper function to check if user has access
+  const hasAccess = (allowedRoles?: string[]) => {
+    if (!allowedRoles || allowedRoles.length === 0) return true;
+    return allowedRoles.includes(userRole);
+  };
 
+  if (!mounted) {
+    return (
+      <aside className="w-64 h-screen bg-[#0E325D] border-r border-[#0E325D]/80" />
+    );
+  }
 
   const toggleItem = (title: string) => {
     setOpenItems((prev) =>
@@ -109,6 +143,16 @@ if (!mounted) {
         : [...prev, title],
     );
   };
+
+  const avatarInitial = username.trim().charAt(0).toUpperCase() || "A";
+
+  // Filter sidebar items based on user role
+  const filteredSidebarItems = sidebarItems
+    .filter(item => hasAccess(item.allowedRoles))
+    .map(item => ({
+      ...item,
+      subItems: item.subItems?.filter(subItem => hasAccess(subItem.allowedRoles))
+    }));
 
   return (
     <aside className="w-64 h-screen bg-[#0E325D] text-white flex flex-col border-r border-[#0E325D]/80">
@@ -120,8 +164,8 @@ if (!mounted) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4">
         <div className="space-y-2">
-          {sidebarItems.map((item) =>
-            item.subItems ? (
+          {filteredSidebarItems.map((item) =>
+            item.subItems && item.subItems.length > 0 ? (
               <Collapsible
                 key={item.title}
                 open={openItems.includes(item.title)}
@@ -169,7 +213,7 @@ if (!mounted) {
                   </div>
                 </CollapsibleContent>
               </Collapsible>
-            ) : (
+            ) : item.href ? (
               <a
                 key={item.title}
                 href={item.href}
@@ -183,7 +227,7 @@ if (!mounted) {
                 <item.icon className="h-5 w-5" />
                 <span>{item.title}</span>
               </a>
-            ),
+            ) : null,
           )}
         </div>
       </nav>
@@ -191,16 +235,16 @@ if (!mounted) {
       {/* User Footer */}
       <div className="p-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-3 py-2">
-          <div className="h-8 w-8 rounded-full bg-[#007CFC] flex items-center justify-center">
-            <span className="text-sm font-medium text-white">A</span>
+          <div className="h-8 w-8 rounded-full bg-[#007CFC] flex items-center justify-center shrink-0">
+            <span className="text-sm font-medium text-white">
+              {avatarInitial}
+            </span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">
-              Admin User
+              {username}
             </p>
-            <p className="text-xs text-white/60 truncate">
-              admin@example.com
-            </p>
+            <p className="text-xs text-white/60 truncate">{email}</p>
           </div>
         </div>
       </div>

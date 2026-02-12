@@ -31,9 +31,9 @@ export const useLogin = () => {
         localStorage.setItem("roles", userProfile.role);
       }
 
-      // Store phone (not mobile)
-      if (userProfile?.phone) {
-        localStorage.setItem("mobile", userProfile.phone.trim());
+      // Store email (not mobile)
+      if (userProfile?.email) {
+        localStorage.setItem("email", userProfile.email.trim());
       }
 
       console.log("Stored values:", {
@@ -41,7 +41,7 @@ export const useLogin = () => {
         userid: localStorage.getItem("userid"),
         username: localStorage.getItem("username"),
         roles: localStorage.getItem("roles"),
-        mobile: localStorage.getItem("mobile"),
+        email: localStorage.getItem("email"),
       });
 
       // Refresh top navigation if function exists

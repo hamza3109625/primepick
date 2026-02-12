@@ -31,7 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans antialiased`}>
         <Providers>{children}</Providers>
-                <Toaster />
+                <Toaster richColors/>
 
       </body>
     </html>

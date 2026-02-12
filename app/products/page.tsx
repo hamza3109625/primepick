@@ -10,6 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import {
   ChevronsUpDown,
@@ -18,8 +25,10 @@ import {
   Edit,
   Trash2,
   Loader2,
+  Building2,
 } from "lucide-react";
 import { useProducts } from "@/hooks/useProducts";
+import { useCompanies } from "@/hooks/useCompanies";
 import { format } from "date-fns";
 import { AddProductDialog } from "./components/add-product-dialog";
 
@@ -30,13 +39,18 @@ export default function ProductsTable() {
   const [rowsPerPage] = useState(8);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | undefined>(undefined);
 
-  // Fetch products from API with pagination
+  // Fetch all companies for the dropdown
+  const { data: companies = [], isLoading: isLoadingCompanies } = useCompanies();
+
+  // Fetch products from API with pagination, filtered by company if selected
   const { data, isLoading, error } = useProducts({
     page: currentPage - 1,
     size: rowsPerPage,
     sortBy: sortKey,
     direction: sortAsc ? "asc" : "desc",
+    ...(selectedCompanyId ? { companyId: Number(selectedCompanyId) } : {}),
   });
 
   const products = data?.content || [];
@@ -50,6 +64,12 @@ export default function ProductsTable() {
       setSortKey(key);
       setSortAsc(true);
     }
+  };
+
+  const handleCompanyChange = (value: string) => {
+    // "all" means no filter; reset to page 1 on filter change
+    setSelectedCompanyId(value === "all" ? undefined : value);
+    setCurrentPage(1);
   };
 
   const getStatusBadgeStyle = (status: string) => {
@@ -69,6 +89,10 @@ export default function ProductsTable() {
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = Math.min(startIndex + rowsPerPage, totalElements);
 
+  const selectedCompanyName = companies.find(
+    (c) => String(c.id) === selectedCompanyId
+  )?.name;
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
@@ -77,11 +101,35 @@ export default function ProductsTable() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Products</h1>
             <p className="text-muted-foreground">
-              Manage and view all products
+              {selectedCompanyName
+                ? `Showing products for ${selectedCompanyName}`
+                : "Manage and view all products"}
             </p>
           </div>
 
           <AddProductDialog />
+        </div>
+
+        {/* Company Filter */}
+        <div className="flex items-center gap-2">
+          <Building2 size={16} className="text-muted-foreground shrink-0" />
+          <Select
+            value={selectedCompanyId ?? "all"}
+            onValueChange={handleCompanyChange}
+            disabled={isLoadingCompanies}
+          >
+            <SelectTrigger className="w-[240px]">
+              <SelectValue placeholder="Filter by company…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Companies</SelectItem>
+              {companies.map((company) => (
+                <SelectItem key={company.id} value={String(company.id)}>
+                  {company.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Table */}
@@ -111,7 +159,9 @@ export default function ProductsTable() {
               <Package className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Products Found</h3>
               <p className="text-sm text-muted-foreground">
-                No products have been added yet
+                {selectedCompanyId
+                  ? "This company has no products yet"
+                  : "No products have been added yet"}
               </p>
             </div>
           ) : (
@@ -237,6 +287,9 @@ export default function ProductsTable() {
         {!isLoading && !error && products.length > 0 && (
           <div className="text-sm text-muted-foreground">
             Showing {startIndex + 1} to {endIndex} of {totalElements} products
+            {selectedCompanyName && (
+              <span className="ml-1">for {selectedCompanyName}</span>
+            )}
           </div>
         )}
       </div>

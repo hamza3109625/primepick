@@ -1,24 +1,12 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Download, Calendar as CalendarIcon, History } from "lucide-react"
-import { format } from "date-fns"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
+import { useState } from "react";
+import { Download, History, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { presignDownload } from "@/api/file.api";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -26,193 +14,172 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/table";
+import { useFiles } from "@/hooks/useFile";
+import { FileParams } from "@/api/file.api";
+import { FileItem } from "@/api/file.api";
 
-const products = [
-  { id: "all", name: "All Products" },
-  { id: "ehs", name: "EHS" },
-  { id: "move-in", name: "Move-In" },
-  { id: "inspection", name: "Inspection" },
-  { id: "maintenance", name: "Maintenance" },
-]
+const PAGE_SIZE = 10;
 
-interface FileRecord {
-  id: string
-  product: string
-  fileType: string
-  filePath: string
-  fileName: string
-  uploadedBy: string
-  numberOfRecords: number
-  totalAmount: number
-}
+const formatFileSize = (bytes: string) => {
+  const n = Number(bytes);
+  if (isNaN(n)) return bytes;
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+};
 
-const mockFileHistory: FileRecord[] = [
-  {
-    id: "001",
-    product: "EHS",
-    fileType: "Collection",
-    filePath: "../EHS/20Jan2026",
-    fileName: "Sohail-20Jan2026",
-    uploadedBy: "User1",
-    numberOfRecords: 83,
-    totalAmount: 1000000.00,
-  },
-  {
-    id: "002",
-    product: "EHS",
-    fileType: "Report",
-    filePath: "../EHS/20Jan2026",
-    fileName: "Sohail-20Jan2026",
-    uploadedBy: "Prime Pick",
-    numberOfRecords: 80,
-    totalAmount: 1000000.00,
-  },
-  {
-    id: "003",
-    product: "Move-In",
-    fileType: "Collection",
-    filePath: "../EHS/20Jan2026",
-    fileName: "Karen-20Jan2026",
-    uploadedBy: "User1",
-    numberOfRecords: 150,
-    totalAmount: 100150000.00,
-  },
-  {
-    id: "004",
-    product: "Move-In",
-    fileType: "Report",
-    filePath: "../EHS/20Jan2026",
-    fileName: "Sohail-20Jan2026",
-    uploadedBy: "Prime Pick",
-    numberOfRecords: 150,
-    totalAmount: 100150000.00,
-  },
-]
+const statusVariant: Record<
+  FileItem["status"],
+  "default" | "secondary" | "destructive"
+> = {
+  UPLOADED: "default",
+  PROCESSING: "secondary",
+  FAILED: "destructive",
+};
 
 export function FileHistory() {
-  const [selectedProduct, setSelectedProduct] = useState<string>("all")
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  const [page, setPage] = useState(0);
+  const [direction, setDirection] = useState<FileParams["direction"]>("asc");
 
-  const filteredHistory = mockFileHistory.filter((record) => {
-    if (selectedProduct !== "all" && record.product.toLowerCase().replace("-", "-") !== selectedProduct) {
-      return false
+  const { data, isLoading, isError } = useFiles({
+    page,
+    size: PAGE_SIZE,
+    sortBy: "id",
+    direction,
+  });
+
+  const files = data?.content ?? [];
+  const totalPages = data?.totalPages ?? 1;
+
+  const handleDownload = async (filePath: string) => {
+    try {
+      const response = await presignDownload(filePath);
+      const url = response.data.url;
+      // Open in new tab — triggers browser download without navigating away
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      toast.error("Failed to generate download link. Please try again.");
     }
-    return true
-  })
-
-  const handleDownload = (fileId: string) => {
-    // Simulate download API call
-    console.log(`Downloading file ${fileId}`)
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
+  };
 
   return (
     <Card className="bg-card">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
-          <History className="h-5 w-5 text-primary" />
-          File History
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 space-y-2">
-            <Label htmlFor="filter-product" className="text-sm font-medium text-foreground">
-              Product
-            </Label>
-            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-              <SelectTrigger id="filter-product">
-                <SelectValue placeholder="Select a product" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((product) => (
-                  <SelectItem key={product.id} value={product.id}>
-                    {product.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex-1 space-y-2">
-            <Label className="text-sm font-medium text-foreground">Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP") : "Select a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
+            <History className="h-5 w-5 text-primary" />
+            File History
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDirection((d) => (d === "asc" ? "desc" : "asc"))}
+          >
+            {direction === "asc" ? "↑ Oldest first" : "↓ Newest first"}
+          </Button>
         </div>
+      </CardHeader>
 
-        {/* Table */}
+      <CardContent className="space-y-4">
         <div className="border border-border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="text-xs font-semibold text-foreground">File ID</TableHead>
-                <TableHead className="text-xs font-semibold text-foreground">Product</TableHead>
-                <TableHead className="text-xs font-semibold text-foreground">File Type</TableHead>
-                <TableHead className="text-xs font-semibold text-foreground">File Path</TableHead>
-                <TableHead className="text-xs font-semibold text-foreground">File Name</TableHead>
-                <TableHead className="text-xs font-semibold text-foreground">Uploaded By</TableHead>
-                <TableHead className="text-xs font-semibold text-foreground text-right">Records</TableHead>
-                <TableHead className="text-xs font-semibold text-foreground text-right">Total Amount</TableHead>
-                <TableHead className="text-xs font-semibold text-foreground w-12"></TableHead>
+                <TableHead className="text-xs font-semibold text-foreground">
+                  ID
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground">
+                  File Name
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground">
+                  File Path
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground">
+                  Type
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground">
+                  Status
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground text-right">
+                  Size
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground text-right">
+                  Records
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground w-12" />
               </TableRow>
             </TableHeader>
+
             <TableBody>
-              {filteredHistory.length === 0 ? (
+              {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                    No files found
+                  <TableCell colSpan={8} className="h-24 text-center">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                  </TableCell>
+                </TableRow>
+              ) : isError ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="h-24 text-center text-destructive"
+                  >
+                    Failed to load files. Please try again.
+                  </TableCell>
+                </TableRow>
+              ) : files.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    No files found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredHistory.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-medium text-foreground">{record.id}</TableCell>
-                    <TableCell className="text-foreground">{record.product}</TableCell>
-                    <TableCell className="text-foreground">{record.fileType}</TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-xs">{record.filePath}</TableCell>
-                    <TableCell className="text-foreground">{record.fileName}</TableCell>
-                    <TableCell className="text-foreground">{record.uploadedBy}</TableCell>
-                    <TableCell className="text-right text-foreground">{record.numberOfRecords}</TableCell>
-                    <TableCell className="text-right font-medium text-foreground">
-                      {formatCurrency(record.totalAmount)}
+                files.map((file: FileItem) => (
+                  <TableRow key={file.id}>
+                    <TableCell className="font-medium text-foreground">
+                      {file.id}
+                    </TableCell>
+                    <TableCell
+                      className="text-foreground max-w-[200px] truncate"
+                      title={file.fileName}
+                    >
+                      {file.fileName}
+                    </TableCell>
+                    <TableCell
+                      className="text-muted-foreground font-mono text-xs max-w-[200px] truncate"
+                      title={file.filePath}
+                    >
+                      {file.filePath}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {file.fileType}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={statusVariant[file.status]}
+                        className="text-xs"
+                      >
+                        {file.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-foreground">
+                      {formatFileSize(file.fileSize)}
+                    </TableCell>
+                    <TableCell className="text-right text-foreground">
+                      {file.fileRecords.toLocaleString()}
                     </TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-                        onClick={() => handleDownload(record.id)}
-                        title="Download Report"
+                        onClick={() => handleDownload(file.filePath)}
+                        title="Download"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -223,7 +190,33 @@ export function FileHistory() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between pt-1">
+          <p className="text-sm text-muted-foreground">
+            Page {page + 1} of {totalPages}
+            {data && <span className="ml-2">({data.totalElements} total)</span>}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0 || isLoading || data?.first}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={isLoading || data?.last}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
-  )
+  );
 }

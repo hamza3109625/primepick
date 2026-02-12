@@ -2,9 +2,16 @@
 import { api } from "./axios";
 import { PaginatedResponse, User } from "@/types/user";
 
-export const getUsers = (page = 0, size = 10) => {
+export const getUsers = (page = 0, size = 10, companyId?: number) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+  if (companyId !== undefined) {
+    params.set("companyId", String(companyId));
+  }
   return api.get<PaginatedResponse<User>>(
-    `/api/admin/users/standard?page=${page}&size=${size}`,
+    `/api/admin/users/standard?${params.toString()}`,
   );
 };
 

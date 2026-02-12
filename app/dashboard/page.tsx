@@ -108,9 +108,9 @@ export default function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Add User", icon: Users },
+                  { label: "Add User", icon: Users , href: "/users/create-user" },
                   { label: "Send Email", icon: Mail },
-                  { label: "Upload File", icon: FolderOpen },
+                  { label: "Upload File", icon: FolderOpen , href: "/file/upload" },
                   { label: "View Reports", icon: TrendingUp },
                 ].map((action, index) => (
                   <button
