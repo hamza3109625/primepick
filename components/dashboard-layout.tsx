@@ -5,6 +5,7 @@ import { Sidebar } from "./sidebar"
 import { Navbar } from "./navbar"
 import { cn } from "lib/utils"
 import { X } from "lucide-react"
+import { Footer } from "./footer"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -55,6 +56,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {children}
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   )
