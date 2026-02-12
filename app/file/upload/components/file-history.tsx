@@ -180,6 +180,7 @@ export function FileHistory() {
                         className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
                         onClick={() => handleDownload(file.filePath)}
                         title="Download"
+                        disabled
                       >
                         <Download className="h-4 w-4" />
                       </Button>
