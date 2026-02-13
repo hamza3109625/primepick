@@ -173,7 +173,7 @@ export function FileHistory() {
                     <TableCell className="text-right text-foreground">
                       {file.fileRecords.toLocaleString()}
                     </TableCell>
-                    <TableCell>
+                    {/* <TableCell>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -184,7 +184,7 @@ export function FileHistory() {
                       >
                         <Download className="h-4 w-4" />
                       </Button>
-                    </TableCell>
+                    </TableCell> */}
                   </TableRow>
                 ))
               )}

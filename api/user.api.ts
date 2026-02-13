@@ -44,6 +44,7 @@ export interface CreateStandardUserResponse {
   email: string;
   phone?: string;
   message?: string;
+  companyId: number;
 }
 
 export type UserRole = "ADMIN" | "EXTERNAL_USER" | "INTERNAL_USER";
