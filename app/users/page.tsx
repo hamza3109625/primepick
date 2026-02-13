@@ -33,26 +33,58 @@ function getInitials(name: string) {
 
 type SortKey = "username" | "email" | "address" | "active";
 
+const PAGE_SIZE = 10;
+
 export default function UsersTable() {
-  const [currentPage, setCurrentPage] = useState(0);
-  const [rowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("username");
   const [sortAsc, setSortAsc] = useState(true);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<number | undefined>(undefined);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("all");
 
-  // Fetch companies for the dropdown
+  // Fetch all companies for the dropdown
   const { data: companies, isLoading: isLoadingCompanies } = useCompanies();
 
-  // Fetch users — reset to page 0 whenever the company filter changes
+  // Fetch all users at once (no server-side filtering)
   const { data, isLoading, isError, error } = useUsers(
-    currentPage,
-    rowsPerPage,
-    selectedCompanyId,
+    0,
+    1000, // Fetch a large number to get all users
+    undefined, // No company filter on the API call
   );
 
+  const allUsers = data?.content ?? [];
+
+  // Apply company filter client-side
+  let users = allUsers;
+  
+  if (selectedCompanyId !== "all") {
+    const companyId = Number(selectedCompanyId);
+    users = users.filter(user => user.companyId === companyId);
+  }
+
+  // Sort the filtered users client-side
+  const sortedUsers = [...users].sort((a, b) => {
+    let valA: string;
+    let valB: string;
+
+    if (sortKey === "active") {
+      valA = a.active ? "active" : "inactive";
+      valB = b.active ? "active" : "inactive";
+    } else {
+      valA = (a[sortKey] || "").toLowerCase();
+      valB = (b[sortKey] || "").toLowerCase();
+    }
+
+    if (valA < valB) return sortAsc ? -1 : 1;
+    if (valA > valB) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  const totalElements = sortedUsers.length;
+  const totalPages = Math.ceil(totalElements / PAGE_SIZE);
+
   const handleCompanyChange = (value: string) => {
-    setCurrentPage(0); // reset pagination on filter change
-    setSelectedCompanyId(value === "all" ? undefined : Number(value));
+    setSelectedCompanyId(value);
+    setCurrentPage(1); // Reset to first page when filter changes
   };
 
   const handleSort = (key: SortKey) => {
@@ -64,26 +96,6 @@ export default function UsersTable() {
     }
   };
 
-  // Sort the users client-side
-  const sortedUsers = data?.content
-    ? [...data.content].sort((a, b) => {
-        let valA: string;
-        let valB: string;
-
-        if (sortKey === "active") {
-          valA = a.active ? "active" : "inactive";
-          valB = b.active ? "active" : "inactive";
-        } else {
-          valA = (a[sortKey] || "").toLowerCase();
-          valB = (b[sortKey] || "").toLowerCase();
-        }
-
-        if (valA < valB) return sortAsc ? -1 : 1;
-        if (valA > valB) return sortAsc ? 1 : -1;
-        return 0;
-      })
-    : [];
-
   const getDisplayName = (user: NonNullable<typeof data>["content"][0]) => {
     const parts = [user.firstName, user.middleName, user.lastName].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : user.username;
@@ -93,6 +105,17 @@ export default function UsersTable() {
     const parts = [user.address, user.city, user.state, user.zipCode].filter(Boolean);
     return parts.length > 0 ? parts.join(", ") : "N/A";
   };
+
+  const getCompanyName = (companyId: number | null) => {
+    if (companyId === null) return "No Company";
+    const company = companies?.find((c) => c.id === companyId);
+    return company?.name || "Unknown";
+  };
+
+  // Paginate the sorted and filtered users
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const endIndex = Math.min(startIndex + PAGE_SIZE, totalElements);
+  const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
 
   if (isLoading && !data) {
     return (
@@ -118,13 +141,21 @@ export default function UsersTable() {
 
   return (
     <DashboardLayout>
+      <div className="mb-2">
+            <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+            <p className="text-muted-foreground">
+              Manage and view all users
+            </p>
+          </div>
       <div className="rounded-lg border bg-card p-4">
+
+          
 
         {/* Company filter */}
         <div className="flex items-center gap-2 mb-4">
           <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
           <Select
-            value={selectedCompanyId !== undefined ? String(selectedCompanyId) : "all"}
+            value={selectedCompanyId}
             onValueChange={handleCompanyChange}
             disabled={isLoadingCompanies}
           >
@@ -133,23 +164,27 @@ export default function UsersTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All companies</SelectItem>
-              {companies?.map((company) => (
-                <SelectItem key={company.id} value={String(company.id)}>
-                  {company.name}
+              {isLoadingCompanies ? (
+                <SelectItem value="loading" disabled>
+                  Loading companies...
                 </SelectItem>
-              ))}
+              ) : (
+                companies?.map((company) => (
+                  <SelectItem key={company.id} value={String(company.id)}>
+                    {company.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
 
           {/* Live count badge */}
-          {data && (
-            <span className="text-sm text-muted-foreground ml-auto">
-              {data.totalElements} user{data.totalElements !== 1 ? "s" : ""}
-              {selectedCompanyId !== undefined && (
-                <> in {companies?.find((c) => c.id === selectedCompanyId)?.name ?? "selected company"}</>
-              )}
-            </span>
-          )}
+          <span className="text-sm text-muted-foreground ml-auto">
+            {totalElements} user{totalElements !== 1 ? "s" : ""}
+            {selectedCompanyId !== "all" && (
+              <> in {getCompanyName(selectedCompanyId === "all" ? null : Number(selectedCompanyId))}</>
+            )}
+          </span>
         </div>
 
         {/* Table */}
@@ -157,9 +192,9 @@ export default function UsersTable() {
           <div className="flex items-center justify-center min-h-[300px]">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : !data || data.empty ? (
+        ) : paginatedUsers.length === 0 ? (
           <div className="text-center text-muted-foreground py-16">
-            {selectedCompanyId !== undefined
+            {selectedCompanyId !== "all"
               ? "No users found for this company."
               : "No users found."}
           </div>
@@ -191,7 +226,7 @@ export default function UsersTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -251,46 +286,52 @@ export default function UsersTable() {
             </Table>
 
             {/* Pagination */}
-            <div className="flex justify-between items-center mt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {(data.number ?? 0) * (data.size ?? rowsPerPage) + 1} to{" "}
-                {Math.min(
-                  ((data.number ?? 0) + 1) * (data.size ?? rowsPerPage),
-                  data.totalElements ?? 0,
-                )}{" "}
-                of {data.totalElements ?? 0} users
-              </div>
-              <div className="flex gap-2">
-                <button
-                  disabled={data.first ?? true}
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                  className="px-3 py-1 rounded border hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                >
-                  Previous
-                </button>
-                {Array.from({ length: data.totalPages ?? 0 }, (_, i) => i).map((page) => (
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center mt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {endIndex} of {totalElements} users
+                  {selectedCompanyId !== "all" && " for selected company"}
+                </div>
+                <div className="flex gap-2">
                   <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 text-sm rounded border hover:bg-gray-100 ${
-                      page === (data.number ?? 0)
-                        ? "bg-blue-500 text-white hover:bg-blue-600"
-                        : ""
-                    }`}
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => p - 1)}
+                    className="px-3 py-1 rounded border hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   >
-                    {page + 1}
+                    Previous
                   </button>
-                ))}
-                <button
-                  disabled={data.last ?? true}
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  className="px-3 py-1 text-sm rounded border hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 text-sm rounded border hover:bg-accent ${
+                        page === currentPage
+                          ? "bg-primary text-primary-foreground"
+                          : ""
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    className="px-3 py-1 text-sm rounded border hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </>
+        )}
+
+        {/* Summary - shown when not paginating */}
+        {!isLoading && paginatedUsers.length > 0 && totalPages === 1 && (
+          <div className="text-sm text-muted-foreground mt-4">
+            Showing {totalElements} user{totalElements !== 1 ? "s" : ""}
+            {selectedCompanyId !== "all" && " for selected company"}
+          </div>
         )}
       </div>
     </DashboardLayout>

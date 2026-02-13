@@ -14,7 +14,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useFiles } from "@/hooks/useFile";
+import { useCompanies } from "@/hooks/useCompanies";
+import { useProducts } from "@/hooks/useProducts";
 import { FileParams, FileItem } from "@/api/file.api";
 import { DashboardLayout } from "@/components/dashboard-layout";
 
@@ -51,22 +60,76 @@ const getStatusBadgeStyle = (status: FileItem["status"]) => {
 };
 
 type SortKey = "id" | "fileName" | "fileType" | "status" | "fileSize";
+type FileType = "COLLECTION" | "REPORT";
 
 export default function FilesTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("id");
   const [sortAsc, setSortAsc] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("all");
+  const [selectedProductId, setSelectedProductId] = useState<string>("all");
+  const [selectedFileType, setSelectedFileType] = useState<string>("all");
+
+  const { data: companiesData, isLoading: isLoadingCompanies } = useCompanies();
+  const companies = companiesData ?? [];
+
+  const { data: productsData, isLoading: isLoadingProducts } = useProducts({
+    page: 0,
+    size: 1000,
+  });
+  const products = productsData?.content ?? [];
 
   const { data, isLoading, isError } = useFiles({
-    page: currentPage - 1,
-    size: PAGE_SIZE,
+    page: 0,
+    size: 1000,
     sortBy: sortKey,
     direction: sortAsc ? "asc" : "desc",
   });
 
-  const files = data?.content ?? [];
-  const totalPages = data?.totalPages ?? 1;
-  const totalElements = data?.totalElements ?? 0;
+  const allFiles = data?.content ?? [];
+
+  // Apply company, product, and file type filters
+  let files = allFiles;
+  
+  if (selectedCompanyId !== "all") {
+    files = files.filter(file => file.companyId === Number(selectedCompanyId));
+  }
+  
+  if (selectedProductId !== "all") {
+    files = files.filter(file => file.productId === Number(selectedProductId));
+  }
+
+  if (selectedFileType !== "all") {
+    files = files.filter(file => file.fileType === selectedFileType);
+  }
+
+  const totalElements = files.length;
+  const totalPages = Math.ceil(totalElements / PAGE_SIZE);
+
+  const getCompanyName = (companyId: number) => {
+    const company = companies.find((c: any) => c.id === companyId);
+    return company?.name || "Unknown";
+  };
+
+  const getProductShortCode = (productId: number) => {
+    const product = products.find((p: any) => p.id === productId);
+    return product?.shortCode || "N/A";
+  };
+
+  const handleCompanyChange = (value: string) => {
+    setSelectedCompanyId(value);
+    setCurrentPage(1);
+  };
+
+  const handleProductChange = (value: string) => {
+    setSelectedProductId(value);
+    setCurrentPage(1);
+  };
+
+  const handleFileTypeChange = (value: string) => {
+    setSelectedFileType(value);
+    setCurrentPage(1);
+  };
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -90,6 +153,7 @@ export default function FilesTable() {
 
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const endIndex = Math.min(startIndex + PAGE_SIZE, totalElements);
+  const paginatedFiles = files.slice(startIndex, endIndex);
 
   return (
     <DashboardLayout>
@@ -103,8 +167,67 @@ export default function FilesTable() {
             </p>
           </div>
 
-          {/* Optional: Add upload button or other actions */}
-          <Button>Upload File</Button>
+         
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-4">
+          <div className="">
+            <Select value={selectedCompanyId} onValueChange={handleCompanyChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by company" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Companies</SelectItem>
+                {isLoadingCompanies ? (
+                  <SelectItem value="loading" disabled>
+                    Loading companies...
+                  </SelectItem>
+                ) : (
+                  companies.map((company: any) => (
+                    <SelectItem key={company.id} value={String(company.id)}>
+                      {company.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="">
+            <Select value={selectedProductId} onValueChange={handleProductChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by product" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Products</SelectItem>
+                {isLoadingProducts ? (
+                  <SelectItem value="loading" disabled>
+                    Loading products...
+                  </SelectItem>
+                ) : (
+                  products.map((product: any) => (
+                    <SelectItem key={product.id} value={String(product.id)}>
+                      {product.shortCode}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="">
+            <Select value={selectedFileType} onValueChange={handleFileTypeChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by file type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All File Types</SelectItem>
+                <SelectItem value="COLLECTION">Collection</SelectItem>
+                <SelectItem value="REPORT">Report</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Table */}
@@ -127,12 +250,14 @@ export default function FilesTable() {
                 Something went wrong. Please try again.
               </p>
             </div>
-          ) : files.length === 0 ? (
+          ) : paginatedFiles.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Download className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Files Found</h3>
               <p className="text-sm text-muted-foreground">
-                No files have been uploaded yet
+                {selectedCompanyId === "all" && selectedProductId === "all" && selectedFileType === "all"
+                  ? "No files have been uploaded yet"
+                  : "No files found for the selected filters"}
               </p>
             </div>
           ) : (
@@ -141,13 +266,13 @@ export default function FilesTable() {
                 <TableHeader>
                   <TableRow>
                     {[
-                      { label: "ID", key: "id" },
+                      { label: "Company Name", key: "" },
+                      { label: "Product Name", key: "" },
+                      { label: "File Type", key: "fileType" },
+                      { label: "File Uploaded Date", key: "" },
+                      { label: "Uploaded By", key: "" },
                       { label: "File Name", key: "fileName" },
-                      { label: "File Path", key: "" },
-                      { label: "Type", key: "fileType" },
                       { label: "Status", key: "status" },
-                      { label: "Size", key: "fileSize" },
-                      { label: "Records", key: "" },
                       { label: "Actions", key: "" },
                     ].map((col) => (
                       <TableHead
@@ -155,21 +280,13 @@ export default function FilesTable() {
                         className={
                           col.key
                             ? "cursor-pointer select-none"
-                            : col.label === "Size" || col.label === "Records"
-                              ? "text-right"
-                              : ""
+                            : ""
                         }
                         onClick={() =>
                           col.key && handleSort(col.key as SortKey)
                         }
                       >
-                        <div
-                          className={`flex items-center gap-1 ${
-                            col.label === "Size" || col.label === "Records"
-                              ? "justify-end"
-                              : ""
-                          }`}
-                        >
+                        <div className="flex items-center gap-1">
                           {col.label}
                           {col.key && <ChevronsUpDown size={16} />}
                         </div>
@@ -178,27 +295,32 @@ export default function FilesTable() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {files.map((file: FileItem) => (
+                  {paginatedFiles.map((file: FileItem) => (
                     <TableRow key={file.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {file.id}
+                      <TableCell className="text-foreground">
+                        {getCompanyName(file.companyId)}
+                      </TableCell>
+                      <TableCell className="text-foreground">
+                        {getProductShortCode(file.productId)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {file.fileType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-foreground">
+                        {/* Date not available in API - showing N/A */}
+                        N/A
+                      </TableCell>
+                      <TableCell className="text-foreground">
+                        {/* Uploaded by not available in API - showing N/A */}
+                        N/A
                       </TableCell>
                       <TableCell
                         className="text-foreground max-w-[200px] truncate"
                         title={file.fileName}
                       >
                         {file.fileName}
-                      </TableCell>
-                      <TableCell
-                        className="text-muted-foreground font-mono text-xs max-w-[200px] truncate"
-                        title={file.filePath}
-                      >
-                        {file.filePath}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {file.fileType}
-                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -207,12 +329,6 @@ export default function FilesTable() {
                         >
                           {file.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right text-foreground">
-                        {formatFileSize(file.fileSize)}
-                      </TableCell>
-                      <TableCell className="text-right text-foreground">
-                        {file.fileRecords.toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -269,9 +385,10 @@ export default function FilesTable() {
         </div>
 
         {/* Summary */}
-        {!isLoading && !isError && files.length > 0 && (
+        {!isLoading && !isError && paginatedFiles.length > 0 && (
           <div className="text-sm text-muted-foreground">
             Showing {startIndex + 1} to {endIndex} of {totalElements} files
+            {(selectedCompanyId !== "all" || selectedProductId !== "all" || selectedFileType !== "all") && " for selected filters"}
           </div>
         )}
       </div>

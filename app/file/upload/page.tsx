@@ -19,7 +19,7 @@ export default function Upload() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Page Header */}
         <div>
           <h1 className="text-2xl font-semibold text-foreground">
@@ -38,17 +38,13 @@ export default function Upload() {
           />
         )}
 
-        {/* Main Content Grid */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          {/* File Upload Form - Takes 1 column */}
-          <div className="lg:col-span-1">
-            <FileUploadForm onUploadSuccess={handleUploadSuccess} />
-          </div>
+        {/* Main Content Stack */}
+        <div className="space-y-6">
+          {/* File Upload Form - Full Width */}
+          <FileUploadForm onUploadSuccess={handleUploadSuccess} />
 
-          {/* File History - Takes 2 columns */}
-          <div className="lg:col-span-2">
-            <FileHistory />
-          </div>
+          {/* File History - Full Width */}
+          <FileHistory />
         </div>
       </div>
     </DashboardLayout>

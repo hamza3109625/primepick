@@ -1,4 +1,5 @@
 export interface User {
+  companyId: number;
   id: number;
   username: string;
   firstName: string | null;
@@ -15,6 +16,7 @@ export interface User {
   createdAt: string;
   tokenStatus: "ACTIVE" | "EXPIRED";
   tokenExpiresAt: string;
+
 }
 
 export interface PaginatedResponse<T> {

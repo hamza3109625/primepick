@@ -38,7 +38,7 @@ export const getFiles = (params: FileParams = {}) => {
   return api.get<FileResponse>("/files", {
     params: {
       page: params.page ?? 0,
-      size: params.size ?? 10,
+      size: params.size ?? 100,
       sortBy: params.sortBy ?? "id",
       direction: params.direction ?? "asc",
     },
