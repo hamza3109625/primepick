@@ -100,12 +100,12 @@ const sidebarItems: SidebarItem[] = [
         href: "/file/upload",
         allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"]
       },
-      {
-        title: "Download",
-        icon: Download,
+      { 
+        title: "Download Files", 
+        icon: Upload, 
         href: "/file/download",
         allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"]
-      }
+      },
     ],
   },
 ];

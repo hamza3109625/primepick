@@ -95,17 +95,11 @@ const sidebarItems: SidebarItem[] = [
     allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"],
     subItems: [
       { 
-        title: "Upload Collection File", 
+        title: "Upload", 
         icon: Upload, 
         href: "/file/upload",
         allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"]
       },
-      {
-        title: "Download",
-        icon: Download,
-        href: "/file/download",
-        allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"]
-      }
     ],
   },
 ];
