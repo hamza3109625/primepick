@@ -104,7 +104,7 @@ export default function FilesTable() {
           </div>
 
           {/* Optional: Add upload button or other actions */}
-          {/* <Button>Upload File</Button> */}
+          <Button>Upload File</Button>
         </div>
 
         {/* Table */}
