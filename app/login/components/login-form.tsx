@@ -62,7 +62,7 @@ export function LoginForm() {
       {
         username: username.trim(),
         password,
-        role: "INTERNAL_USER",
+        role: "EXTERNAL_USER",
       },
       {
         onSuccess: () => {

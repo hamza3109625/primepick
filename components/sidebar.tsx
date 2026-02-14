@@ -104,7 +104,7 @@ const sidebarItems: SidebarItem[] = [
         title: "Download",
         icon: Download,
         href: "/file/download",
-        allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"]
+        allowedRoles: ["ADMIN", "INTERNAL_USER"]
       }
     ],
   },
