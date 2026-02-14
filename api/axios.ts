@@ -1,8 +1,8 @@
 import axios from "axios";
 
 export const api = axios.create({
-  // baseURL: "http://100.25.133.67/",
-  baseURL: "https://dzrwsebpgjwmd.cloudfront.net/",
+  baseURL: "http://100.25.133.67/",
+  // baseURL: "https://dzrwsebpgjwmd.cloudfront.net/",
   headers: {
     "Content-Type": "application/json",
   },
@@ -10,7 +10,6 @@ export const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    // Only access localStorage in the browser
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token'); 
       if (token) {
@@ -27,12 +26,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Only access localStorage in the browser
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-      }
-    }
+    // Just pass through the error without removing token
     return Promise.reject(error);
   }
 );
