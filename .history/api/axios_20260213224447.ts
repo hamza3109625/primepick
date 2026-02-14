@@ -8,14 +8,12 @@ export const api = axios.create({
   },
 });
 
+
 api.interceptors.request.use(
   (config) => {
-    // Only access localStorage in the browser
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token'); 
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+    const token = localStorage.getItem('token'); 
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -28,10 +26,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Only access localStorage in the browser
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-      }
+      localStorage.removeItem('token');
     }
     return Promise.reject(error);
   }
