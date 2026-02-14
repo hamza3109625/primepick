@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { useActivation } from "@/hooks/useActivation";
 
-export default function CreatePasswordPage() {
+// Separate the component that uses useSearchParams
+function CreatePasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
@@ -20,29 +21,29 @@ export default function CreatePasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Use combined activation hook
- const {
-  isValidating,
-  isValid,
-  username,
-  email,
-  validationError,
-  isLoading,
-  passwordError,
-  success,
-  handleSetPassword,
-} = useActivation(token, () => {
-  setTimeout(() => {
-    const userRole = localStorage.getItem('roles');
-    const loginPath = (userRole === 'ADMIN' || userRole === 'INTERNAL_USER') 
-      ? '/login/admin' 
-      : '/login';
-    
-    const loginUrl = new URL(loginPath, window.location.origin);
-    loginUrl.searchParams.set("activated", "1");
-    loginUrl.searchParams.set("userType", userRole || "STANDARD_USER");
-    router.push(loginUrl.toString());
-  }, 1500);
-});
+  const {
+    isValidating,
+    isValid,
+    username,
+    email,
+    validationError,
+    isLoading,
+    passwordError,
+    success,
+    handleSetPassword,
+  } = useActivation(token, () => {
+    setTimeout(() => {
+      const userRole = localStorage.getItem('roles');
+      const loginPath = (userRole === 'ADMIN' || userRole === 'INTERNAL_USER') 
+        ? '/login/admin' 
+        : '/login';
+      
+      const loginUrl = new URL(loginPath, window.location.origin);
+      loginUrl.searchParams.set("activated", "1");
+      loginUrl.searchParams.set("userType", userRole || "STANDARD_USER");
+      router.push(loginUrl.toString());
+    }, 1500);
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,5 +236,27 @@ export default function CreatePasswordPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function CreatePasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <p className="text-gray-600">Loading...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <CreatePasswordForm />
+    </Suspense>
   );
 }
