@@ -73,9 +73,11 @@ export default function FilesTable() {
   const { data: companiesData, isLoading: isLoadingCompanies } = useCompanies();
   const companies = companiesData ?? [];
 
+  // Fetch products filtered by selected company
   const { data: productsData, isLoading: isLoadingProducts } = useProducts({
     page: 0,
     size: 1000,
+    ...(selectedCompanyId !== "all" && { companyId: Number(selectedCompanyId) }),
   });
   const products = productsData?.content ?? [];
 
@@ -118,6 +120,7 @@ export default function FilesTable() {
 
   const handleCompanyChange = (value: string) => {
     setSelectedCompanyId(value);
+    setSelectedProductId("all"); // Reset product filter when company changes
     setCurrentPage(1);
   };
 
@@ -195,7 +198,11 @@ export default function FilesTable() {
           </div>
 
           <div className="">
-            <Select value={selectedProductId} onValueChange={handleProductChange}>
+            <Select 
+              value={selectedProductId} 
+              onValueChange={handleProductChange}
+              disabled={selectedCompanyId === "all"}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Filter by product" />
               </SelectTrigger>
@@ -204,6 +211,10 @@ export default function FilesTable() {
                 {isLoadingProducts ? (
                   <SelectItem value="loading" disabled>
                     Loading products...
+                  </SelectItem>
+                ) : products.length === 0 && selectedCompanyId !== "all" ? (
+                  <SelectItem value="no-products" disabled>
+                    No products for this company
                   </SelectItem>
                 ) : (
                   products.map((product: any) => (
