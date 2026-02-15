@@ -8,6 +8,7 @@ interface UseActivationResult {
   isValid: boolean;
   username: string | null;
   email: string | null;
+  userRole: string | null;
   validationError: string | null;
   
   // Password setting state
@@ -35,6 +36,7 @@ export function useActivation(
   const [isValid, setIsValid] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   // Password setting state
@@ -61,6 +63,7 @@ export function useActivation(
         setIsValid(true);
         setUsername(result.username || null);
         setEmail(result.email || null);
+        setUserRole(result.role || result.userRole || null);
         setValidationError(null);
       } catch (err) {
         const errorMessage = err instanceof Error 
@@ -141,6 +144,7 @@ export function useActivation(
     isValid,
     username,
     email,
+    userRole,
     validationError,
     
     // Password setting

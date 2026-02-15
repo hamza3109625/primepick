@@ -28,12 +28,12 @@ interface SidebarItem {
   title: string;
   icon: React.ElementType;
   href?: string;
-  allowedRoles?: string[]; // Add role-based access
+  allowedRoles?: string[]; 
   subItems?: {
     title: string;
     icon: React.ElementType;
     href: string;
-    allowedRoles?: string[]; // Add role-based access for sub-items
+    allowedRoles?: string[]; 
   }[];
 }
 
@@ -42,50 +42,50 @@ const sidebarItems: SidebarItem[] = [
     title: "Dashboard",
     icon: LayoutDashboard,
     href: "/dashboard",
-    allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"], // All roles
+    allowedRoles: ["ADMIN", "INTERNAL_USER", "EXTERNAL_USER"], 
   },
   {
     title: "Users",
     icon: Users,
-    allowedRoles: ["ADMIN", "INTERNAL_USER"], // Only ADMIN and INTERNAL_USER
+    allowedRoles: ["ADMIN"], 
     subItems: [
       { 
         title: "All Users", 
         icon: Users, 
         href: "/users",
-        allowedRoles: ["ADMIN", "INTERNAL_USER"]
+        allowedRoles: ["ADMIN"]
       },
       { 
         title: "Add User", 
         icon: UserPlus, 
         href: "/users/create-user",
-        allowedRoles: ["ADMIN"] // Only ADMIN can add users
+        allowedRoles: ["ADMIN"] 
       },
     ],
   },
   {
     title: "Company",
     icon: Building,
-    allowedRoles: ["ADMIN", "INTERNAL_USER"],
+    allowedRoles: ["ADMIN"],
     subItems: [
       { 
         title: "List of Companies", 
         icon: LayoutDashboard, 
         href: "/company",
-        allowedRoles: ["ADMIN", "INTERNAL_USER"]
+        allowedRoles: ["ADMIN"]
       },
     ],
   },
   {
     title: "Products",
     icon: FileText,
-    allowedRoles: ["ADMIN", "INTERNAL_USER"], // All roles
+    allowedRoles: ["ADMIN"], 
     subItems: [
       { 
         title: "All Products", 
         icon: FileText, 
         href: "/products",
-        allowedRoles: ["ADMIN", "INTERNAL_USER"]
+        allowedRoles: ["ADMIN"]
       }
     ],
   },

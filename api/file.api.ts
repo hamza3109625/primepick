@@ -12,7 +12,9 @@ export interface FileItem {
   productName: string | null;
   fileType: "COLLECTION" | "REPORT";
   status: "UPLOADED" | "PROCESSING" | "FAILED";
-  message: string;
+  message: string | null;
+  uploadDate: string; 
+  uploadUserId: number; 
 }
 
 export interface FileResponse {

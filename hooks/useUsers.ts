@@ -1,6 +1,6 @@
 // hooks/useUsers.ts
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { getUsers } from "@/api/user.api";
+import { getUsers, getUserById } from "@/api/user.api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createStandardUser,
@@ -18,19 +18,28 @@ export const useUsers = (page: number, size = 10, companyId?: number) =>
     placeholderData: keepPreviousData,
   });
 
+// Add this new hook to get a single user by ID
+export const useUser = (userId: number | null) => {
+  return useQuery({
+    queryKey: ["user", userId],
+    queryFn: async () => {
+      const response = await getUserById(userId!);
+      return response.data;
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+};
+
 export const useCreateStandardUser = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      data,
-      role,
-    }: {
-      data: CreateStandardUserRequest;
-      role: UserRole;
-    }) => createStandardUser(data, role),
+    mutationFn: async ({ data, role }: { data: CreateStandardUserRequest; role: UserRole }) => {
+      return await createStandardUser(data, role); 
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ['users'] }); 
     },
   });
 };

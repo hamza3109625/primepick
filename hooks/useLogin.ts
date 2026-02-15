@@ -36,12 +36,23 @@ export const useLogin = () => {
         localStorage.setItem("email", userProfile.email.trim());
       }
 
+      // Store company ID
+      if (userProfile?.companyId) {
+        localStorage.setItem("companyId", String(userProfile.companyId));
+      }
+
+      if (userProfile?.firstName) {
+        localStorage.setItem("firstname", userProfile.firstName);
+      }
+
       console.log("Stored values:", {
         token: localStorage.getItem("token"),
         userid: localStorage.getItem("userid"),
         username: localStorage.getItem("username"),
+        firstname: localStorage.getItem("firstname"),
         roles: localStorage.getItem("roles"),
         email: localStorage.getItem("email"),
+        companyId: localStorage.getItem("companyId"),
       });
 
       // Refresh top navigation if function exists

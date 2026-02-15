@@ -39,6 +39,7 @@ export function FileUploadForm({ onUploadSuccess }: FileUploadFormProps) {
   const [folderPath, setFolderPath] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [userRole, setUserRole] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: companies = [], isLoading: loadingCompanies } = useCompanies();
@@ -49,6 +50,23 @@ export function FileUploadForm({ onUploadSuccess }: FileUploadFormProps) {
 
   const selectedCompanyName = companies.find((c) => String(c.id) === selectedCompanyId)?.name ?? "";
   const selectedProductName = products.find((p) => String(p.id) === selectedProductId)?.name ?? "";
+
+  // Check if user can change company (ADMIN or INTERNAL_USER)
+  const canChangeCompany = userRole === "ADMIN" || userRole === "INTERNAL_USER";
+
+  // Auto-select company from localStorage on mount and get user role
+  useEffect(() => {
+    const storedCompanyId = localStorage.getItem("companyId");
+    const storedRole = localStorage.getItem("roles");
+    
+    if (storedRole) {
+      setUserRole(storedRole);
+    }
+    
+    if (storedCompanyId && !selectedCompanyId) {
+      setSelectedCompanyId(storedCompanyId);
+    }
+  }, [selectedCompanyId]);
 
   useEffect(() => {
     setFolderPath(buildFolderPath(selectedCompanyName, selectedProductName, selectedDate));
@@ -71,7 +89,7 @@ export function FileUploadForm({ onUploadSuccess }: FileUploadFormProps) {
 
   const resetForm = useCallback(() => {
     setSelectedFile(null);
-    setSelectedCompanyId("");
+    // Don't reset company ID - keep it selected
     setSelectedProductId("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
@@ -125,7 +143,11 @@ export function FileUploadForm({ onUploadSuccess }: FileUploadFormProps) {
             <Label htmlFor="company" className="text-sm font-medium text-foreground">
               Company
             </Label>
-            <Select value={selectedCompanyId} onValueChange={handleCompanyChange} disabled={loadingCompanies}>
+            <Select 
+              value={selectedCompanyId} 
+              onValueChange={handleCompanyChange} 
+              disabled={loadingCompanies || !canChangeCompany}
+            >
               <SelectTrigger id="company" className="w-full">
                 {loadingCompanies ? (
                   <LoadingOption label="Loading companies..." />
@@ -139,6 +161,9 @@ export function FileUploadForm({ onUploadSuccess }: FileUploadFormProps) {
                 ))}
               </SelectContent>
             </Select>
+            {!canChangeCompany && selectedCompanyId && (
+              <p className="text-xs text-muted-foreground">Company is auto-selected based on your account</p>
+            )}
           </div>
 
           {/* Product */}

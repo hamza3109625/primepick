@@ -15,6 +15,11 @@ export const getUsers = (page = 0, size = 10, companyId?: number) => {
   );
 };
 
+// Add this new function to get a single user by ID
+export const getUserById = (userId: number) => {
+  return api.get<User>(`/api/users/${userId}`);
+};
+
 export interface CreateStandardUserRequest {
   username: string;
   firstName?: string;

@@ -38,12 +38,17 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const avatarInitial = username.trim().charAt(0).toUpperCase() || "A";
 
   const handleLogout = () => {
- 
-    const userRole = localStorage.getItem("userRole");
+    // Fix: Use "roles" instead of "userRole"
+    const userRole = localStorage.getItem("roles");
 
     localStorage.removeItem("username");
     localStorage.removeItem("email");
-    localStorage.removeItem("userRole");
+    localStorage.removeItem("roles");
+    localStorage.removeItem("userid");
+    localStorage.removeItem("token");
+    localStorage.removeItem("companyId");
+    localStorage.removeItem("firstname");
+    localStorage.removeItem("companyName");
 
     const loginPath =
       userRole === "ADMIN" || userRole === "INTERNAL_USER"
@@ -52,6 +57,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
     window.location.href = loginPath;
   };
+
   return (
     <header className="h-16 bg-[#FFFFFF] border-b border-[#EEFBFF] flex items-center justify-between px-6">
       {/* Left */}
@@ -98,15 +104,6 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#007CFC]" />
           <span className="sr-only">Notifications</span>
         </Button>
-
-        {/* <Button
-          variant="ghost"
-          size="icon"
-          className="hover:bg-[#EEFBFF]"
-        >
-          <Settings className="h-5 w-5 text-[#0E325D]" />
-          <span className="sr-only">Settings</span>
-        </Button> */}
 
         {/* Avatar with Dropdown */}
         <div className="relative ml-2" ref={dropdownRef}>

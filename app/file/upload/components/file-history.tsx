@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { History, Loader2, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -53,18 +53,45 @@ export function FileHistory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("id");
   const [sortAsc, setSortAsc] = useState(false);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("all");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [selectedProductId, setSelectedProductId] = useState<string>("all");
   const [selectedFileType, setSelectedFileType] = useState<string>("all");
+  const [uploaderName, setUploaderName] = useState<string>("");
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+
+  // Get company ID, firstName, and userId from localStorage on mount
+  useEffect(() => {
+    const storedCompanyId = localStorage.getItem("companyId");
+    const storedFirstName = localStorage.getItem("firstName");
+    const storedUserId = localStorage.getItem("userId");
+    
+    console.log("localStorage values:", { 
+      storedCompanyId, 
+      storedFirstName, 
+      storedUserId 
+    });
+    
+    if (storedCompanyId) {
+      setSelectedCompanyId(storedCompanyId);
+    }
+    if (storedFirstName) {
+      setUploaderName(storedFirstName);
+    }
+    if (storedUserId) {
+      setCurrentUserId(storedUserId);
+    }
+  }, []);
 
   const { data: companiesData, isLoading: isLoadingCompanies } = useCompanies();
   const companies = companiesData ?? [];
 
-  // Fetch products filtered by selected company
+  // Fetch products filtered by the user's company
   const { data: productsData, isLoading: isLoadingProducts } = useProducts({
     page: 0,
     size: 1000,
-    ...(selectedCompanyId !== "all" && { companyId: Number(selectedCompanyId) }),
+    ...(selectedCompanyId && { companyId: Number(selectedCompanyId) }),
   });
   const products = productsData?.content ?? [];
 
@@ -77,11 +104,17 @@ export function FileHistory() {
 
   const allFiles = data?.content ?? [];
 
-  // Apply company, product, and file type filters
+  // Apply product and file type filters
+  // Files are filtered by user's company and userId from localStorage
   let files = allFiles;
   
-  if (selectedCompanyId !== "all") {
+  // Always filter by the user's company and userId (from localStorage)
+  if (selectedCompanyId) {
     files = files.filter(file => file.companyId === Number(selectedCompanyId));
+  }
+  
+  if (currentUserId) {
+    files = files.filter(file => file.uploadUserId === Number(currentUserId));
   }
   
   if (selectedProductId !== "all") {
@@ -90,6 +123,25 @@ export function FileHistory() {
 
   if (selectedFileType !== "all") {
     files = files.filter(file => file.fileType === selectedFileType);
+  }
+
+  // Filter by date range
+  if (startDate) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0); // Start of the day
+    files = files.filter(file => {
+      const fileDate = new Date(file.uploadDate);
+      return fileDate >= start;
+    });
+  }
+
+  if (endDate) {
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // End of the day
+    files = files.filter(file => {
+      const fileDate = new Date(file.uploadDate);
+      return fileDate <= end;
+    });
   }
 
   const totalElements = files.length;
@@ -105,10 +157,19 @@ export function FileHistory() {
     return product?.shortCode || "N/A";
   };
 
-  const handleCompanyChange = (value: string) => {
-    setSelectedCompanyId(value);
-    setSelectedProductId("all"); // Reset product filter when company changes
-    setCurrentPage(1);
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return "Invalid Date";
+    }
   };
 
   const handleProductChange = (value: string) => {
@@ -118,6 +179,22 @@ export function FileHistory() {
 
   const handleFileTypeChange = (value: string) => {
     setSelectedFileType(value);
+    setCurrentPage(1);
+  };
+
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setStartDate(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEndDate(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleClearDateFilters = () => {
+    setStartDate("");
+    setEndDate("");
     setCurrentPage(1);
   };
 
@@ -137,34 +214,11 @@ export function FileHistory() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="">
-          <Select value={selectedCompanyId} onValueChange={handleCompanyChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by company" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Companies</SelectItem>
-              {isLoadingCompanies ? (
-                <SelectItem value="loading" disabled>
-                  Loading companies...
-                </SelectItem>
-              ) : (
-                companies.map((company: any) => (
-                  <SelectItem key={company.id} value={String(company.id)}>
-                    {company.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-
+      <div className="flex items-center gap-4 flex-wrap">
         <div className="">
           <Select 
             value={selectedProductId} 
             onValueChange={handleProductChange}
-            disabled={selectedCompanyId === "all"}
           >
             <SelectTrigger>
               <SelectValue placeholder="Filter by product" />
@@ -175,9 +229,9 @@ export function FileHistory() {
                 <SelectItem value="loading" disabled>
                   Loading products...
                 </SelectItem>
-              ) : products.length === 0 && selectedCompanyId !== "all" ? (
+              ) : products.length === 0 ? (
                 <SelectItem value="no-products" disabled>
-                  No products for this company
+                  No products for your company
                 </SelectItem>
               ) : (
                 products.map((product: any) => (
@@ -201,6 +255,32 @@ export function FileHistory() {
               <SelectItem value="REPORT">Report</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={startDate}
+            onChange={handleStartDateChange}
+            className="px-3 py-2 text-sm rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+            placeholder="Start date"
+          />
+          <span className="text-sm text-muted-foreground">to</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={handleEndDateChange}
+            className="px-3 py-2 text-sm rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+            placeholder="End date"
+          />
+          {(startDate || endDate) && (
+            <button
+              onClick={handleClearDateFilters}
+              className="px-3 py-2 text-sm rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+            >
+              Clear Dates
+            </button>
+          )}
         </div>
       </div>
 
@@ -229,8 +309,8 @@ export function FileHistory() {
             <History className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Files Found</h3>
             <p className="text-sm text-muted-foreground">
-              {selectedCompanyId === "all" && selectedProductId === "all" && selectedFileType === "all"
-                ? "No files have been uploaded yet"
+              {selectedProductId === "all" && selectedFileType === "all" && !startDate && !endDate
+                ? "No files have been uploaded yet for your company"
                 : "No files found for the selected filters"}
             </p>
           </div>
@@ -282,12 +362,10 @@ export function FileHistory() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-foreground">
-                      {/* Date not available in API - showing N/A */}
-                      N/A
+                      {file.uploadDate ? formatDate(file.uploadDate) : "N/A"}
                     </TableCell>
                     <TableCell className="text-foreground">
-                      {/* Uploaded by not available in API - showing N/A */}
-                      N/A
+                      {uploaderName || "N/A"}
                     </TableCell>
                     <TableCell
                       className="text-foreground max-w-[200px] truncate"
@@ -350,7 +428,7 @@ export function FileHistory() {
       {!isLoading && !isError && paginatedFiles.length > 0 && (
         <div className="text-sm text-muted-foreground">
           Showing {startIndex + 1} to {endIndex} of {totalElements} files
-          {(selectedCompanyId !== "all" || selectedProductId !== "all" || selectedFileType !== "all") && " for selected filters"}
+          {(selectedProductId !== "all" || selectedFileType !== "all" || startDate || endDate) && " for selected filters"}
         </div>
       )}
     </div>

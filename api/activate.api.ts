@@ -5,6 +5,8 @@ export interface ValidateTokenResponse {
   valid: boolean;
   username?: string;
   email?: string;
+  role?: string;        
+  userRole?: string;    
   message?: string;
 }
 
@@ -22,7 +24,7 @@ export interface SetPasswordResponse {
 /**
  * Validates an activation token
  * @param token - The JWT bearer token from the activation link
- * @returns Promise with validation result including user details
+ * @returns Promise with validation result including user details and role
  */
 export async function validateActivationToken(
   token: string
